@@ -12,19 +12,12 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 )
 
-const (
-	AWS_S3_REGION         = "ap-southeast-1"
-	AWS_S3_BUCKET         = "customfeedbucket"
-	AWS_ACCESS_KEY_ID     = "AKIAV3XRZF7WLEZQMNGD"
-	AWS_SECRET_ACCESS_KEY = "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"
-)
-
 func uploadFile(basePath string, filePath string) error {
-	sessionObj, err := session.NewSession(&aws.Config{Region: aws.String(AWS_S3_REGION),
+	sessionObj, err := session.NewSession(&aws.Config{Region: aws.String(AwsS3Region()),
 
 		Credentials: credentials.NewStaticCredentials(
-			AWS_ACCESS_KEY_ID,
-			AWS_SECRET_ACCESS_KEY,
+			AwsAccessKeyID(),
+			AwsSecretAccessKey(),
 			"",
 		),
 	})
@@ -45,7 +38,7 @@ func uploadFile(basePath string, filePath string) error {
 	uploader := s3manager.NewUploader(sessionObj)
 
 	_, err = uploader.Upload(&s3manager.UploadInput{
-		Bucket:             aws.String(AWS_S3_BUCKET),
+		Bucket:             aws.String(AwsS3Bucket()),
 		ACL:                aws.String("public-read"),
 		Key:                aws.String(basePath + fileName),
 		Body:               upFile,

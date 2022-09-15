@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -51,9 +50,7 @@ func GetCollection(client *mongo.Client, collectionName string) *mongo.Collectio
 func initializeAPI() {
 	r := gin.Default()
 	r.GET("/feeds", GetAllFeeds)
-	r.POST("/feeds", PostFeed)
 	r.POST("/feeds/upload", UploadFeed)
-	r.DELETE("/feeds/:id", DeleteFeed)
 
 	r.Run(":8080")
 }
@@ -79,31 +76,6 @@ func GetAllFeeds(c *gin.Context) {
 	}
 
 	c.JSON(200, feeds)
-
-}
-func PostFeed(c *gin.Context) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	var feed Feed
-	if err := c.BindJSON(&feed); err != nil {
-		c.AbortWithStatus(404)
-		fmt.Println(err)
-		return
-	}
-
-	feed.FeedId = uuid.New().String()
-
-	fmt.Println(feed.ImageAndVideos[0])
-
-	result, err := feedCollection.InsertOne(ctx, feed)
-	if err != nil {
-		c.AbortWithStatus(404)
-		fmt.Println(err)
-	}
-	println(result)
-	c.JSON(200, feed)
-}
-func DeleteFeed(c *gin.Context) {
 
 }
 
@@ -140,7 +112,7 @@ func UploadFeed(c *gin.Context) {
 			c.String(http.StatusBadRequest, "upload file err: %s", err.Error())
 			return
 		}
-		//upload to ec3
+		//upload to S3 Storage
 		errorUpload := uploadFile(baseFolder, baseFolder+filename)
 		if errorUpload != nil {
 			c.AbortWithStatus(506)
