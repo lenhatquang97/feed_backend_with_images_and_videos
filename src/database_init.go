@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -16,14 +17,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-type Feed struct {
-	FeedId         string   `json:"feedId"`
-	ImageAndVideos []string `json:"imagesAndVideos"`
-}
-
-type Result struct {
-	Status string `json:"status"`
-}
+const OBJECT_URL = "https://customfeedbucket.s3.ap-southeast-1.amazonaws.com/"
 
 func ConnectDB() *mongo.Client {
 	client, err := mongo.NewClient(options.Client().ApplyURI(EnvMongoURI()))
@@ -114,7 +108,11 @@ func DeleteFeed(c *gin.Context) {
 }
 
 func UploadFeed(c *gin.Context) {
+	var feed Feed
 	limit_err := c.Request.ParseMultipartForm(32 << 20)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 
 	//Corner case: Only allow to upload file <= 32mb
 	if limit_err != nil {
@@ -126,6 +124,7 @@ func UploadFeed(c *gin.Context) {
 
 	//Corner case: Feed id must only be once and unique
 	if len(feedId) > 1 {
+		fmt.Println("Oh no! FeedId is larger than 1")
 		c.AbortWithStatus(404)
 	}
 
@@ -133,6 +132,7 @@ func UploadFeed(c *gin.Context) {
 
 	//Create Folder based on id
 	os.Mkdir(baseFolder, 0755)
+	feed.FeedId = feedId[0]
 
 	for _, file := range files {
 		filename := filepath.Base(file.Filename)
@@ -140,7 +140,22 @@ func UploadFeed(c *gin.Context) {
 			c.String(http.StatusBadRequest, "upload file err: %s", err.Error())
 			return
 		}
+		//upload to ec3
+		errorUpload := uploadFile(baseFolder, baseFolder+filename)
+		if errorUpload != nil {
+			c.AbortWithStatus(506)
+			fmt.Println(errorUpload)
+		}
+		fullLink := OBJECT_URL + baseFolder + filename
+		feed.ImageAndVideos = append(feed.ImageAndVideos, strings.Replace(fullLink, " ", "+", -1))
 	}
-	c.JSON(200, Result{Status: "Successful!"})
+	result, err := feedCollection.InsertOne(ctx, feed)
+	if err != nil {
+		c.AbortWithStatus(404)
+		fmt.Println(err)
+	}
+	println(result)
+
+	c.JSON(200, feed)
 
 }
