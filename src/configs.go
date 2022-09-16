@@ -16,33 +16,26 @@ func EnvMongoURI() string {
 	return os.Getenv("MONGOURI")
 }
 
-func AwsAccessKeyID() string {
+func CloudinaryBucketName() string {
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
-	return os.Getenv("AWS_ACCESS_KEY_ID")
+	return os.Getenv("CLOUDINARY_BUCKET_NAME")
 }
 
-func AwsSecretAccessKey() string {
+func CloudinaryApiKey() string {
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
-	return os.Getenv("AWS_SECRET_ACCESS_KEY")
+	return os.Getenv("CLOUDINARY_API_KEY")
 }
 
-func AwsS3Region() string {
+func CloudinarySecretKey() string {
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
-	return os.Getenv("AWS_S3_REGION")
-}
-func AwsS3Bucket() string {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
-	return os.Getenv("AWS_S3_BUCKET")
+	return os.Getenv("CLOUDINARY_SECRET_KEY")
 }

@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -81,6 +80,7 @@ func GetAllFeeds(c *gin.Context) {
 
 func UploadFeed(c *gin.Context) {
 	var feed Feed
+	//Limit to 32 MB
 	limit_err := c.Request.ParseMultipartForm(32 << 20)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -113,20 +113,20 @@ func UploadFeed(c *gin.Context) {
 			return
 		}
 		//upload to S3 Storage
-		errorUpload := uploadFile(baseFolder, baseFolder+filename)
-		if errorUpload != nil {
-			c.AbortWithStatus(506)
-			fmt.Println(errorUpload)
+		response, err := uploadFiles(c, baseFolder+filename)
+		if err != nil {
+			c.String(http.StatusBadRequest, "upload file err: %s", err.Error())
+			return
 		}
-		fullLink := OBJECT_URL + baseFolder + filename
-		feed.ImageAndVideos = append(feed.ImageAndVideos, strings.Replace(fullLink, " ", "+", -1))
+		fmt.Println(response)
+		feed.ImageAndVideos = append(feed.ImageAndVideos, response.URL)
 	}
 	result, err := feedCollection.InsertOne(ctx, feed)
 	if err != nil {
 		c.AbortWithStatus(404)
 		fmt.Println(err)
 	}
-	println(result)
+	fmt.Println(result)
 
 	c.JSON(200, feed)
 
