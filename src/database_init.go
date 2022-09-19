@@ -95,6 +95,7 @@ func UploadFeed(c *gin.Context) {
 	}
 	formdata := c.Request.MultipartForm
 	feedId := formdata.Value["feedId"]
+	caption := formdata.Value["caption"]
 	files := formdata.File["upload"]
 
 	//Corner case: Feed id must only be once and unique
@@ -107,6 +108,7 @@ func UploadFeed(c *gin.Context) {
 
 	//Create Folder based on id
 	os.Mkdir(baseFolder, 0755)
+	feed.Caption = caption[0]
 	feed.FeedId = feedId[0]
 
 	for _, file := range files {
