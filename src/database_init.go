@@ -94,7 +94,11 @@ func UploadFeed(c *gin.Context) {
 		log.Fatal(limit_err)
 	}
 	formdata := c.Request.MultipartForm
+
 	feedId := formdata.Value["feedId"]
+	name := formdata.Value["name"]
+	avatar := formdata.Value["avatar"]
+	createdTime := formdata.Value["createdTime"]
 	caption := formdata.Value["caption"]
 	files := formdata.File["upload"]
 
@@ -108,8 +112,12 @@ func UploadFeed(c *gin.Context) {
 
 	//Create Folder based on id
 	os.Mkdir(baseFolder, 0755)
-	feed.Caption = caption[0]
+
 	feed.FeedId = feedId[0]
+	feed.Name = name[0]
+	feed.Avatar = avatar[0]
+	feed.CreatedTime = createdTime[0]
+	feed.Caption = caption[0]
 
 	for _, file := range files {
 		filename := filepath.Base(file.Filename)
