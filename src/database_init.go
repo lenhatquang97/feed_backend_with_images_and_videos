@@ -50,9 +50,11 @@ func initializeAPI() {
 	r := gin.Default()
 	r.GET("/feeds", GetAllFeeds)
 	r.POST("/feeds/upload", UploadFeed)
+	r.DELETE("/feeds/:id", DeleteFeed)
 
 	r.Run(":8080")
 }
+
 func GetAllFeeds(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	var feeds []Feed
@@ -79,11 +81,12 @@ func GetAllFeeds(c *gin.Context) {
 }
 
 func UploadFeed(c *gin.Context) {
+	count := 0
 	var feed Feed
 	//Limit to 32 MB
 	limit_err := c.Request.ParseMultipartForm(32 << 20)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancel()
 
 	//Corner case: Only allow to upload file <= 32mb
@@ -118,7 +121,8 @@ func UploadFeed(c *gin.Context) {
 			c.String(http.StatusBadRequest, "upload file err: %s", err.Error())
 			return
 		}
-		fmt.Println(response)
+		count += 1
+		fmt.Println(count)
 		feed.ImageAndVideos = append(feed.ImageAndVideos, response.URL)
 	}
 	result, err := feedCollection.InsertOne(ctx, feed)
@@ -130,4 +134,16 @@ func UploadFeed(c *gin.Context) {
 
 	c.JSON(200, feed)
 
+}
+func DeleteFeed(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+	defer cancel()
+	feedId := c.Param("id")
+	result, err := feedCollection.DeleteOne(ctx, bson.M{"feedId": feedId})
+	if err != nil {
+		c.AbortWithStatus(404)
+		fmt.Println(err)
+	}
+	fmt.Println(result)
+	c.JSON(200, result)
 }
