@@ -139,7 +139,7 @@ func DeleteFeed(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancel()
 	feedId := c.Param("id")
-	result, err := feedCollection.DeleteOne(ctx, bson.M{"feedId": feedId})
+	result, err := feedCollection.DeleteOne(ctx, bson.M{"feedid": feedId})
 	if err != nil {
 		c.AbortWithStatus(404)
 		fmt.Println(err)
