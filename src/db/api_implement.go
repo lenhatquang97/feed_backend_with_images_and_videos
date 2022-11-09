@@ -1,4 +1,4 @@
-package main
+package db
 
 import (
 	"context"
@@ -7,46 +7,17 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sort"
+	"strconv"
 	"time"
 
+	"example.com/feed_backend/src/cdn"
+	"example.com/feed_backend/src/model"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-const OBJECT_URL = "https://customfeedbucket.s3.ap-southeast-1.amazonaws.com/"
-
-func ConnectDB() *mongo.Client {
-	client, err := mongo.NewClient(options.Client().ApplyURI(EnvMongoURI()))
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
-	err = client.Connect(ctx)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	//ping the database
-	err = client.Ping(ctx, nil)
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println("Connected to MongoDB")
-	return client
-}
-
-var mongoDb *mongo.Client = ConnectDB()
-var feedCollection *mongo.Collection = GetCollection(mongoDb, "feed")
-
-func GetCollection(client *mongo.Client, collectionName string) *mongo.Collection {
-	collection := client.Database("feed_database").Collection(collectionName)
-	return collection
-}
-
-func initializeAPI() {
+func InitializeAPI() {
 	r := gin.Default()
 	r.GET("/feeds", GetAllFeeds)
 	r.POST("/feeds/upload", UploadFeed)
@@ -57,7 +28,7 @@ func initializeAPI() {
 
 func GetAllFeeds(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	var feeds []Feed
+	var feeds []model.Feed
 	defer cancel()
 
 	results, err := feedCollection.Find(ctx, bson.M{})
@@ -68,13 +39,18 @@ func GetAllFeeds(c *gin.Context) {
 	}
 	defer results.Close(ctx)
 	for results.Next(ctx) {
-		var singleFeed Feed
+		var singleFeed model.Feed
 		if err := results.Decode(&singleFeed); err != nil {
 			c.AbortWithStatus(404)
 			fmt.Println(err)
 		}
 		feeds = append(feeds, singleFeed)
 	}
+	sort.Slice(feeds, func(i, j int) bool {
+		it1, _ := strconv.ParseInt(feeds[i].CreatedTime, 10, 64)
+		it2, _ := strconv.ParseInt(feeds[j].CreatedTime, 10, 64)
+		return it1 > it2
+	})
 
 	c.JSON(200, feeds)
 
@@ -82,10 +58,11 @@ func GetAllFeeds(c *gin.Context) {
 
 func UploadFeed(c *gin.Context) {
 	count := 0
-	var feed Feed
-	//Limit to 32 MB
-	limit_err := c.Request.ParseMultipartForm(32 << 20)
+	var feed model.Feed
+	//Limit to 120 MB
+	limit_err := c.Request.ParseMultipartForm(120 << 20)
 
+	//Timeout is 120 seconds
 	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancel()
 
@@ -101,13 +78,12 @@ func UploadFeed(c *gin.Context) {
 	createdTime := formdata.Value["createdTime"]
 	caption := formdata.Value["caption"]
 	files := formdata.File["upload"]
-
 	//Corner case: Feed id must only be once and unique
 	if len(feedId) > 1 {
+		fmt.Println("Nooooo")
 		fmt.Println("Oh no! FeedId is larger than 1")
 		c.AbortWithStatus(404)
 	}
-
 	baseFolder := "files/" + feedId[0] + "/"
 
 	//Create Folder based on id
@@ -118,25 +94,36 @@ func UploadFeed(c *gin.Context) {
 	feed.Avatar = avatar[0]
 	feed.CreatedTime = createdTime[0]
 	feed.Caption = caption[0]
+	feed.FirstWidth = 0
+	feed.FirstHeight = 0
+
+	fmt.Println("Checkpoint 1")
 
 	for _, file := range files {
 		filename := filepath.Base(file.Filename)
 		if err := c.SaveUploadedFile(file, baseFolder+filename); err != nil {
+			fmt.Printf("Error 2 %s\n", err.Error())
 			c.String(http.StatusBadRequest, "upload file err: %s", err.Error())
 			return
 		}
-		//upload to S3 Storage
-		response, err := uploadFiles(c, baseFolder+filename)
+		response, err := cdn.UploadFiles(c, baseFolder+filename)
+		if count == 0 {
+			feed.FirstWidth = response.Width
+			feed.FirstHeight = response.Height
+		}
 		if err != nil {
+			fmt.Printf("Error 3 %s\n", err.Error())
 			c.String(http.StatusBadRequest, "upload file err: %s", err.Error())
 			return
 		}
 		count += 1
-		fmt.Println(count)
+		fmt.Printf("You have uploaded %d files\n", count)
 		feed.ImageAndVideos = append(feed.ImageAndVideos, response.URL)
 	}
+
 	result, err := feedCollection.InsertOne(ctx, feed)
 	if err != nil {
+		fmt.Println("Checkpoint 3")
 		c.AbortWithStatus(404)
 		fmt.Println(err)
 	}

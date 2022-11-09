@@ -1,4 +1,4 @@
-package main
+package model
 
 type Feed struct {
 	FeedId         string   `json:"feedId"`
@@ -7,6 +7,8 @@ type Feed struct {
 	CreatedTime    string   `json:"createdTime"`
 	Caption        string   `json:"caption"`
 	ImageAndVideos []string `json:"imagesAndVideos"`
+	FirstWidth     int      `json:"firstWidth"`
+	FirstHeight    int      `json:"firstHeight"`
 }
 
 type Result struct {
