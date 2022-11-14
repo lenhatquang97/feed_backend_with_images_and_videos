@@ -21,6 +21,7 @@ func InitializeAPI() {
 	r := gin.Default()
 	r.GET("/feeds", GetAllFeeds)
 	r.POST("/feeds/upload", UploadFeed)
+	r.POST("/feeds/upload_v2", AddFeed)
 	r.DELETE("/feeds/:id", DeleteFeed)
 
 	r.Run(":8080")
@@ -54,6 +55,21 @@ func GetAllFeeds(c *gin.Context) {
 
 	c.JSON(200, feeds)
 
+}
+
+// function add feed to database
+func AddFeed(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+	defer cancel()
+	var feed model.Feed
+	c.BindJSON(&feed)
+	result, err := feedCollection.InsertOne(ctx, feed)
+	if err != nil {
+		c.AbortWithStatus(404)
+		fmt.Println(err)
+	}
+	fmt.Println(result)
+	c.JSON(200, result)
 }
 
 func UploadFeed(c *gin.Context) {
