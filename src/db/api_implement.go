@@ -20,8 +20,13 @@ import (
 func InitializeAPI() {
 	r := gin.Default()
 	r.GET("/feeds", GetAllFeeds)
+
+	//For version 1
 	r.POST("/feeds/upload", UploadFeed)
+
+	//For latest version
 	r.POST("/feeds/upload_v2", AddFeed)
+
 	r.DELETE("/feeds/:id", DeleteFeed)
 
 	r.Run(":8080")
