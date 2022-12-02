@@ -6,9 +6,11 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"example.com/feed_backend/src/cdn"
@@ -173,6 +175,18 @@ func UploadFileUtility(c *gin.Context) {
 		c.AbortWithStatus(500)
 	}
 	c.SaveUploadedFile(file, "./files/"+file.Filename)
+
+	if strings.HasSuffix(file.Filename, ".mp4") {
+		thumbnailName := strings.Replace(file.Filename, ".mp4", ".png", 1)
+
+		cmd := exec.Command("ffmpeg", "-y", "-i", "./files/"+file.Filename, "-ss", "00:00:01.000", "-vframes", "1", "./files/"+thumbnailName)
+		fmt.Println(cmd.String())
+		err := cmd.Run()
+		if err != nil {
+			fmt.Println("Error: ", err)
+		}
+	}
+
 	link := configs.CustomDomain() + "static/files/" + file.Filename
 	c.String(200, link)
 }
