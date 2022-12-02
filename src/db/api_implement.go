@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"mime/multipart"
 	"net/http"
 	"os"
 	"os/exec"
@@ -170,23 +171,33 @@ func DeleteFeed(c *gin.Context) {
 // function that supports uploading files
 func UploadFileUtility(c *gin.Context) {
 	file, err := c.FormFile("file")
+	id := c.Request.FormValue("id")
+
+	if _, err := os.Stat("./files/" + id); os.IsNotExist(err) {
+		os.Mkdir("./files/"+id, 0755)
+	}
+
 	if err != nil {
 		fmt.Println(err)
 		c.AbortWithStatus(500)
 	}
-	c.SaveUploadedFile(file, "./files/"+file.Filename)
+
+	c.SaveUploadedFile(file, "./files/"+id+"/"+file.Filename)
 
 	if strings.HasSuffix(file.Filename, ".mp4") {
-		thumbnailName := strings.Replace(file.Filename, ".mp4", ".png", 1)
-
-		cmd := exec.Command("ffmpeg", "-y", "-i", "./files/"+file.Filename, "-ss", "00:00:01.000", "-vframes", "1", "./files/"+thumbnailName)
-		fmt.Println(cmd.String())
-		err := cmd.Run()
-		if err != nil {
-			fmt.Println("Error: ", err)
-		}
+		executeGetThumbnail(file, id)
 	}
 
-	link := configs.CustomDomain() + "static/files/" + file.Filename
+	link := configs.CustomDomain() + "static/files/" + id + "/" + file.Filename
 	c.String(200, link)
+}
+
+func executeGetThumbnail(file *multipart.FileHeader, id string) {
+	thumbnailName := strings.Replace(file.Filename, ".mp4", ".png", 1)
+	cmd := exec.Command("ffmpeg", "-y", "-i", "./files/"+id+"/"+file.Filename, "-ss", "00:00:01.000", "-vframes", "1", "./files/"+id+"/"+thumbnailName)
+	fmt.Println(cmd.String())
+	err := cmd.Run()
+	if err != nil {
+		fmt.Println("Error: ", err)
+	}
 }
