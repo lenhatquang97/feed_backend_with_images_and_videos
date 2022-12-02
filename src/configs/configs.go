@@ -39,3 +39,10 @@ func CloudinarySecretKey() string {
 	}
 	return os.Getenv("CLOUDINARY_SECRET_KEY")
 }
+func CustomDomain() string {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+	return os.Getenv("CUSTOM_DOMAIN")
+}

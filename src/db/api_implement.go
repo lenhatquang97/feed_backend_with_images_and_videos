@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"example.com/feed_backend/src/cdn"
+	"example.com/feed_backend/src/configs"
 	"example.com/feed_backend/src/model"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
@@ -19,16 +20,14 @@ import (
 
 func InitializeAPI() {
 	r := gin.Default()
+	r.Static("/static", "./")
 	r.GET("/feeds", GetAllFeeds)
-
 	//For version 1
 	r.POST("/feeds/upload", UploadFeed)
-
 	//For latest version
 	r.POST("/feeds/upload_v2", AddFeed)
-
 	r.DELETE("/feeds/:id", DeleteFeed)
-
+	r.POST("/upload", UploadFileUtility)
 	r.Run(":8080")
 }
 
@@ -87,7 +86,7 @@ func UploadFeed(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancel()
 
-	//Corner case: Only allow to upload file <= 32mb
+	//Corner case: Only allow to upload file <= 120mb
 	if limit_err != nil {
 		log.Fatal(limit_err)
 	}
@@ -164,4 +163,16 @@ func DeleteFeed(c *gin.Context) {
 	}
 	fmt.Println(result)
 	c.JSON(200, result)
+}
+
+// function that supports uploading files
+func UploadFileUtility(c *gin.Context) {
+	file, err := c.FormFile("file")
+	if err != nil {
+		fmt.Println(err)
+		c.AbortWithStatus(500)
+	}
+	c.SaveUploadedFile(file, "./files/"+file.Filename)
+	link := configs.CustomDomain() + "static/files/" + file.Filename
+	c.String(200, link)
 }
