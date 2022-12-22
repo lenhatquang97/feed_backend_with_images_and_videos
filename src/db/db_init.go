@@ -10,8 +10,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-var mongoDb *mongo.Client = ConnectDB()
-var feedCollection *mongo.Collection = GetCollection(mongoDb, "feed")
+var MongoDb *mongo.Client = ConnectDB()
+var FeedCollection *mongo.Collection = GetCollection(MongoDb, "feed")
 
 func GetCollection(client *mongo.Client, collectionName string) *mongo.Collection {
 	collection := client.Database("feed_database").Collection(collectionName)

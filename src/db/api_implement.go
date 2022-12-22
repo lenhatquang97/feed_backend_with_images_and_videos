@@ -4,10 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"mime/multipart"
 	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -17,6 +15,7 @@ import (
 	"example.com/feed_backend/src/cdn"
 	"example.com/feed_backend/src/configs"
 	"example.com/feed_backend/src/model"
+	"example.com/feed_backend/src/utility"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
 )
@@ -39,7 +38,7 @@ func GetAllFeeds(c *gin.Context) {
 	var feeds []model.Feed
 	defer cancel()
 
-	results, err := feedCollection.Find(ctx, bson.M{})
+	results, err := FeedCollection.Find(ctx, bson.M{})
 
 	if err != nil {
 		c.AbortWithStatus(404)
@@ -70,7 +69,7 @@ func AddFeed(c *gin.Context) {
 	defer cancel()
 	var feed model.Feed
 	c.BindJSON(&feed)
-	result, err := feedCollection.InsertOne(ctx, feed)
+	result, err := FeedCollection.InsertOne(ctx, feed)
 	if err != nil {
 		c.AbortWithStatus(404)
 		fmt.Println(err)
@@ -144,7 +143,7 @@ func UploadFeed(c *gin.Context) {
 		feed.ImageAndVideos = append(feed.ImageAndVideos, response.URL)
 	}
 
-	result, err := feedCollection.InsertOne(ctx, feed)
+	result, err := FeedCollection.InsertOne(ctx, feed)
 	if err != nil {
 		fmt.Println("Checkpoint 3")
 		c.AbortWithStatus(404)
@@ -159,7 +158,7 @@ func DeleteFeed(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancel()
 	feedId := c.Param("id")
-	result, err := feedCollection.DeleteOne(ctx, bson.M{"feedid": feedId})
+	result, err := FeedCollection.DeleteOne(ctx, bson.M{"feedid": feedId})
 	if err != nil {
 		c.AbortWithStatus(404)
 		fmt.Println(err)
@@ -185,19 +184,9 @@ func UploadFileUtility(c *gin.Context) {
 	c.SaveUploadedFile(file, "./files/"+id+"/"+file.Filename)
 
 	if strings.HasSuffix(file.Filename, ".mp4") {
-		executeGetThumbnail(file, id)
+		utility.ExecuteGetThumbnail(file, id)
 	}
 
 	link := configs.CustomDomain() + "static/files/" + id + "/" + file.Filename
 	c.String(200, link)
-}
-
-func executeGetThumbnail(file *multipart.FileHeader, id string) {
-	thumbnailName := strings.Replace(file.Filename, ".mp4", ".png", 1)
-	cmd := exec.Command("ffmpeg", "-y", "-i", "./files/"+id+"/"+file.Filename, "-ss", "00:00:01.000", "-vframes", "1", "./files/"+id+"/"+thumbnailName)
-	fmt.Println(cmd.String())
-	err := cmd.Run()
-	if err != nil {
-		fmt.Println("Error: ", err)
-	}
 }
