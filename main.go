@@ -1,14 +1,20 @@
 package main
 
-import "example.com/feed_backend/src/db"
+import (
+	"os"
+
+	"example.com/feed_backend/src/db"
+	"example.com/feed_backend/src/testing"
+)
 
 func main() {
-	db.ConnectDB()
-	db.InitializeAPI()
+	args := os.Args[1]
+	if args == "test" {
+		res := testing.GetAllFeedsWithTesting()
+		numsOfFeeds := testing.GenerateNumbersOfFeeds(res, 2)
+		testing.InsertFeedByFeed(numsOfFeeds)
+	} else {
+		db.ConnectDB()
+		db.InitializeAPI()
+	}
 }
-
-// func main() {
-// 	result := testing.GetAllFeedsWithTesting()
-// 	numsOfFeeds := testing.GenerateNumbersOfFeeds(result, 30)
-// 	testing.InsertFeedByFeed(numsOfFeeds)
-// }

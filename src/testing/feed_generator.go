@@ -10,6 +10,7 @@ import (
 
 	"example.com/feed_backend/src/db"
 	"example.com/feed_backend/src/model"
+	"example.com/feed_backend/src/utility"
 	"github.com/google/uuid"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -50,10 +51,13 @@ func GenerateNumbersOfFeeds(inputFeeds []model.Feed, nums int) []model.Feed {
 	for i := 0; i < nums; i++ {
 		randomId := uuid.New().String()
 		randomIndex := rand.Intn(len(inputFeeds))
+		randomImagesNumber := rand.Intn(7-3+1) + 3
 		inputFeed := inputFeeds[randomIndex]
 		inputFeed.FeedId = randomId
 		inputFeed.CreatedTime = strconv.FormatInt(time.Now().UnixMilli(), 10)
+		inputFeed.ImageAndVideos = utility.GenerateBatchImages(randomImagesNumber, randomId)
 		outputFeeds = append(outputFeeds, inputFeed)
+		fmt.Println(inputFeed.ImageAndVideos)
 	}
 	return outputFeeds
 }
