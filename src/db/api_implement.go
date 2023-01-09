@@ -171,6 +171,7 @@ func DeleteFeed(c *gin.Context) {
 func UploadFileUtility(c *gin.Context) {
 	file, err := c.FormFile("file")
 	id := c.Request.FormValue("id")
+	checksum := c.Request.FormValue("checksum")
 
 	if _, err := os.Stat("./files/" + id); os.IsNotExist(err) {
 		os.Mkdir("./files/"+id, 0755)
@@ -184,9 +185,9 @@ func UploadFileUtility(c *gin.Context) {
 	c.SaveUploadedFile(file, "./files/"+id+"/"+file.Filename)
 
 	if strings.HasSuffix(file.Filename, ".mp4") {
-		utility.ExecuteGetThumbnail(file, id)
+		checksum = utility.ExecuteGetThumbnail(file, id)
 	}
 
-	link := configs.CustomDomain() + "static/files/" + id + "/" + file.Filename
+	link := configs.CustomDomain() + "static/files/" + id + "/" + file.Filename + "?checksum=" + checksum
 	c.String(200, link)
 }

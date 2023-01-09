@@ -1,8 +1,6 @@
 package utility
 
 import (
-	"crypto/md5"
-	"encoding/hex"
 	"fmt"
 	"io"
 	"log"
@@ -16,7 +14,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func ExecuteGetThumbnail(file *multipart.FileHeader, id string) {
+func ExecuteGetThumbnail(file *multipart.FileHeader, id string) string {
 	thumbnailName := strings.Replace(file.Filename, ".mp4", ".png", 1)
 	cmd := exec.Command("ffmpeg", "-y", "-i", "./files/"+id+"/"+file.Filename, "-ss", "00:00:01.000", "-vframes", "1", "./files/"+id+"/"+thumbnailName)
 	fmt.Println(cmd.String())
@@ -24,23 +22,7 @@ func ExecuteGetThumbnail(file *multipart.FileHeader, id string) {
 	if err != nil {
 		fmt.Println("Error: ", err)
 	}
-}
-
-// SHA-256 file hash with path
-func GetMd5(filePath string) string {
-	file, err := os.Open(filePath)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer file.Close()
-
-	hash := md5.New()
-	if _, err := io.Copy(hash, file); err != nil {
-		log.Fatal(err)
-	}
-
-	hashInBytes := hash.Sum(nil)
-	return hex.EncodeToString(hashInBytes)
+	return GetMd5("./files/" + id + "/" + thumbnailName)
 }
 
 // Download random image from source https://source.unsplash.com/random
@@ -73,7 +55,9 @@ func DownloadRandomImageIntoFolderId(id string) string {
 	}
 	time.Sleep(2 * time.Second)
 
-	return "https://feeduiclone.win/static/files/" + id + "/" + randomIdJpg
+	filePath := folderPath + "/" + randomIdJpg
+
+	return "https://feeduiclone.win/static/files/" + id + "/" + randomIdJpg + "?checksum=" + GetMd5(filePath)
 }
 
 func GenerateBatchImages(num int, id string) []string {
