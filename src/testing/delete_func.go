@@ -21,7 +21,7 @@ func DeleteWithId(feedId string) {
 	}
 }
 
-// Delete duplicate with same feedId in MongoDB
+// DeleteDuplicate Delete duplicate with same feedId in MongoDB
 func DeleteDuplicate() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()

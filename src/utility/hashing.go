@@ -8,7 +8,7 @@ import (
 	"os"
 )
 
-// MD5 Hash with file
+// GetMd5 MD5 Hash with file
 func GetMd5(filePath string) string {
 	file, err := os.Open(filePath)
 	if err != nil {

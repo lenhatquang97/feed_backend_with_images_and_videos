@@ -35,7 +35,7 @@ func GenerateARandomFeed() Feed {
 	randomStringLength := rand.Intn(100-30+1) + 30
 	feed.Caption = randomized.RandStringRunes(randomStringLength)
 
-	randomImagesNumber := rand.Intn(7-3+1) + 3
+	randomImagesNumber := rand.Intn(15-3+1) + 3
 	feed.ImageAndVideos = utility.GenerateBatchImages(randomImagesNumber, feed.FeedId)
 	feed.FirstWidth = 0
 	feed.FirstHeight = 0

@@ -25,7 +25,7 @@ func ExecuteGetThumbnail(file *multipart.FileHeader, id string) string {
 	return GetMd5("./files/" + id + "/" + thumbnailName)
 }
 
-// Download random image from source https://source.unsplash.com/random
+// DownloadRandomImageIntoFolderId Download random image from source https://source.unsplash.com/random
 func DownloadRandomImageIntoFolderId(id string) string {
 	// Get the data
 	resp, err := http.Get("https://source.unsplash.com/random")
